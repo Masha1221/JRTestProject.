@@ -5,7 +5,11 @@ import com.example.demo.responses.StatusResponse;
 import com.example.demo.services_Impl.UsersServiseImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.Callable;
 
 @RestController
 @RequiredArgsConstructor
@@ -15,11 +19,16 @@ public class UsersController {
     private final UsersServiseImpl usersServise;
 
     @PostMapping("/users")
-    public Integer createUser(@RequestBody UserDTO user) {
-        UserDTO userDTO = usersServise.createUser(user);
-        log.info("Adding a new user. User - {},{},{}.", userDTO.getName(),
-                userDTO.getEmail(), userDTO.isStatus());
-        return userDTO.getId();
+    public Callable<ResponseEntity> createUser(@RequestBody UserDTO user) {
+        return () -> {
+            try {
+                UserDTO userDTO = usersServise.createUser(user);
+                return new ResponseEntity<>(userDTO.getId(), HttpStatus.CREATED);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        };
     }
 
     @GetMapping("/users/{id}")
@@ -30,10 +39,17 @@ public class UsersController {
         return userDTO;
     }
 
-    @PutMapping("/users/{id}")
-    public StatusResponse changeStatus(@PathVariable("id") Integer id,
-                                       @RequestBody UserDTO userDTO) {
-        log.info("Change the status of the user with id - {}.", id);
-        return usersServise.changeStatus(id, userDTO.isStatus());
+    @PutMapping("users/{id}")
+    public Callable<ResponseEntity> changeStatus(@PathVariable("id") Integer id,
+                                                 @RequestBody UserDTO userDTO) {
+        return () -> {
+            try {
+                StatusResponse status = usersServise.changeStatus(id, userDTO.isStatus());
+                return new ResponseEntity<>(status, HttpStatus.OK);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        };
     }
 }
